@@ -1,5 +1,5 @@
-/* Service worker — réseau d'abord sur le code (MAJ auto), cache en repli hors-ligne. */
-const CACHE = 'resolv-v5';
+/* Service worker — réseau d'abord AVEC revalidation forcée (MAJ fiable), cache en repli hors-ligne. */
+const CACHE = 'resolv-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -32,8 +32,10 @@ self.addEventListener('fetch', e => {
   // On ne touche jamais aux appels IA (autres origines) : laissés au réseau.
   if (url.origin !== location.origin) return;
 
+  // cache:'reload' force une vraie requête réseau (ignore le cache HTTP du navigateur),
+  // sinon un app.js encore "frais" au sens HTTP pouvait être resservi malgré une MAJ.
   e.respondWith(
-    fetch(req).then(res => {
+    fetch(new Request(req, { cache: 'reload' })).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
       return res;

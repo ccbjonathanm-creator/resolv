@@ -7,7 +7,7 @@
    =========================================================== */
 
 const App = (() => {
-  const APP_VERSION = 'v5';   // suit désormais la version du service worker (resolv-v5)
+  const APP_VERSION = 'v6';   // suit la version du service worker (resolv-v6)
   const LS = 'depanne_settings_v1';
 
   const state = {
@@ -405,7 +405,16 @@ Pas de texte hors du JSON.`;
     if(!Licence.isLicensed() && Trial.hasEmail()){
       Trial.status().then(refreshQuota);
     }
-    if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    if('serviceWorker' in navigator){
+      // MAJ auto : dès qu'un nouveau service worker prend la main, on recharge une fois.
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        if(reloaded) return; reloaded = true; location.reload();
+      });
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => reg.update().catch(()=>{}))
+        .catch(()=>{});
+    }
   }
   document.addEventListener('DOMContentLoaded', init);
 
