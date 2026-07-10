@@ -129,16 +129,34 @@ const Vendeur = (() => {
     });
   }
 
+  // Ouvre le mode vendeur : appui long OU 5 appuis rapides (fiable sur mobile,
+  // où l'appui long est souvent capté par le navigateur pour sélectionner le texte).
   function bindLongPress(el){
     if (!el) return;
+    el.style.touchAction = 'manipulation';
+    el.style.userSelect = 'none';
+    el.style.webkitUserSelect = 'none';
+    el.style.cursor = 'pointer';
+    el.addEventListener('contextmenu', e => e.preventDefault());
+
+    // 1) appui long (~800 ms)
     let timer=null;
-    const start=()=>{ timer=setTimeout(open, 900); };
+    const start=()=>{ clearTimeout(timer); timer=setTimeout(open, 800); };
     const cancel=()=>{ clearTimeout(timer); };
     el.addEventListener('pointerdown', start);
     el.addEventListener('pointerup', cancel);
-    el.addEventListener('pointerleave', cancel);
     el.addEventListener('pointercancel', cancel);
+
+    // 2) repli imparable : 5 appuis rapides (< 800 ms entre chaque)
+    let taps=0, tapTimer=null;
+    el.addEventListener('click', ()=>{
+      taps++;
+      clearTimeout(tapTimer);
+      tapTimer=setTimeout(()=>{ taps=0; }, 800);
+      if (taps>=5){ taps=0; clearTimeout(tapTimer); open(); }
+    });
   }
 
   return { open, bindLongPress, hasKey };
 })();
+window.Vendeur = Vendeur;

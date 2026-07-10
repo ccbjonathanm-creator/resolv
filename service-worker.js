@@ -1,5 +1,5 @@
 /* Service worker — réseau d'abord sur le code (MAJ auto), cache en repli hors-ligne. */
-const CACHE = 'depanne-v1';
+const CACHE = 'resolv-v2';
 const ASSETS = [
   './',
   './index.html',
