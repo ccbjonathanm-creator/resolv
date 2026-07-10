@@ -65,23 +65,46 @@ const Licence = (() => {
     return ok;
   }
 
-  // Mur payant : plein écran quand les usages gratuits sont épuisés.
-  function paywall(){
+  // Écran d'activation. isPaywall=true quand l'essai est épuisé (message 15 €),
+  // sinon activation manuelle accessible à tout moment (bouton dans les Réglages / l'accueil).
+  function openSheet(isPaywall){
+    // déjà licencié : on affiche juste le statut
+    if (verified){
+      const back = document.createElement('div'); back.className='sheet-back';
+      back.innerHTML = `<div class="sheet">
+        <h3>✓ Version complète active</h3>
+        <div class="result" style="background:rgba(49,208,170,.1);border-color:rgba(49,208,170,.4);margin:10px 0">
+          Resolv est débloqué à vie sur cet appareil pour <b>${state.email||''}</b>. Merci !
+        </div>
+        <div class="btn-row"><button class="btn primary block" id="lic-ok">Fermer</button></div>
+        <div class="version-line" id="lic-version">Resolv</div>
+      </div>`;
+      document.body.appendChild(back);
+      const close=()=>back.remove();
+      back.addEventListener('click', e=>{ if(e.target===back) close(); });
+      back.querySelector('#lic-ok').addEventListener('click', close);
+      if (window.Vendeur) Vendeur.bindLongPress(back.querySelector('#lic-version'));
+      return;
+    }
+
     const back = document.createElement('div'); back.className = 'sheet-back';
+    const banner = isPaywall
+      ? `<div class="result" style="background:rgba(61,139,255,.1);border-color:rgba(61,139,255,.4);margin:10px 0">
+           Tu as utilisé tes <b>2 diagnostics gratuits</b>. Pour continuer sans limite, débloque l'appli
+           <b>à vie pour 15 €</b> (paiement unique, aucun abonnement).
+         </div>`
+      : `<p class="hint">Tu as acheté Resolv ? Saisis ton e-mail d'achat et la clé qu'on t'a envoyée pour débloquer l'appli à vie.</p>`;
     back.innerHTML = `<div class="sheet">
-      <h3>🔓 Débloque Resolv à vie</h3>
-      <div class="result" style="background:rgba(61,139,255,.1);border-color:rgba(61,139,255,.4);margin:10px 0">
-        Tu as utilisé tes <b>2 diagnostics gratuits</b>. Pour continuer sans limite, débloque l'appli
-        <b>à vie pour 15 €</b> (paiement unique, aucun abonnement).
-      </div>
-      <p class="hint">Après paiement, le vendeur te renvoie une clé liée à ton e-mail. Elle marche sur tous tes appareils, même après une réinstallation.</p>
+      <h3>🔓 ${isPaywall ? 'Débloque Resolv à vie' : 'Activer ma licence'}</h3>
+      ${banner}
+      <p class="hint">La clé est liée à ton e-mail : elle marche sur tous tes appareils, même après une réinstallation.</p>
       <label class="field"><span class="lab">E-mail d'achat</span>
         <input type="email" id="pw-email" placeholder="Ton e-mail d'achat" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
       <label class="field"><span class="lab">Clé de licence</span>
         <input type="text" id="pw-key" placeholder="Colle ta clé ici" autocomplete="off"></label>
       <div id="pw-status" class="hint"></div>
       <div class="btn-row">
-        <button class="btn ghost" id="pw-close">Plus tard</button>
+        <button class="btn ghost" id="pw-close">${isPaywall ? 'Plus tard' : 'Fermer'}</button>
         <button class="btn primary" id="pw-activate">Activer ma clé</button>
       </div>
       <div class="version-line" id="pw-version">Resolv</div>
@@ -90,8 +113,10 @@ const Licence = (() => {
     const close = ()=>back.remove();
     back.addEventListener('click', e=>{ if (e.target===back) close(); });
     back.querySelector('#pw-close').addEventListener('click', close);
-    // appui long sur le nom = mode vendeur (génération de clés)
+    // appui long / 5 appuis sur le nom = mode vendeur (génération de clés)
     if (window.Vendeur) Vendeur.bindLongPress(back.querySelector('#pw-version'));
+    // pré-remplit l'e-mail si déjà saisi une fois
+    if (state.email) back.querySelector('#pw-email').value = state.email;
     back.querySelector('#pw-activate').addEventListener('click', async ()=>{
       const email = back.querySelector('#pw-email').value.trim();
       const k = back.querySelector('#pw-key').value.trim();
@@ -105,6 +130,9 @@ const Licence = (() => {
     });
   }
 
+  function paywall(){ openSheet(true); }        // essai épuisé
+  function openActivate(){ openSheet(false); }  // bouton "Activer" toujours accessible
+
   // Garde : true si l'action est permise, sinon ouvre le paywall et renvoie false.
   function guard(){
     if (canUse()) return true;
@@ -112,6 +140,7 @@ const Licence = (() => {
     return false;
   }
 
-  return { init, canUse, consume, guard, paywall, isLicensed, licensedEmail, usesLeft,
+  return { init, canUse, consume, guard, paywall, openActivate, isLicensed, licensedEmail, usesLeft,
            activate, FREE_USES };
 })();
+window.Licence = Licence;

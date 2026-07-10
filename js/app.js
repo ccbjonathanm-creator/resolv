@@ -270,11 +270,15 @@ Pas de texte hors du JSON.`;
 
   function refreshQuota(){
     const line = $('quota-line');
-    if(Licence.isLicensed()){ line.innerHTML = '✓ Version complète débloquée à vie'; return; }
+    if(Licence.isLicensed()){ line.innerHTML = '✓ Version complète débloquée à vie'; line.style.cursor='default'; return; }
     const left = Licence.usesLeft();
-    line.innerHTML = left>0
+    const base = left>0
       ? `Version d'essai — <b>${left}</b> diagnostic${left>1?'s':''} gratuit${left>1?'s':''} restant${left>1?'s':''}`
       : `Essai terminé — débloque l'appli à vie pour 15 €`;
+    line.innerHTML = base + `<br><span class="quota-activate">🔓 J'ai une clé — activer</span>`;
+    line.style.cursor = 'default';
+    const link = line.querySelector('.quota-activate');
+    if(link) link.addEventListener('click', ()=>Licence.openActivate());
   }
 
   /* ---------- Feuille de réglages ---------- */
@@ -306,6 +310,10 @@ Pas de texte hors du JSON.`;
         <button class="btn ghost" id="s-close">Fermer</button>
         <button class="btn primary" id="s-save">Enregistrer</button>
       </div>
+
+      <div style="height:1px;background:var(--line);margin:18px 0"></div>
+      <button class="btn ghost block" id="s-licence">${Licence.isLicensed() ? '✓ Version complète (à vie)' : '🔓 Activer ma licence'}</button>
+
       <div class="version-line" id="s-version">Resolv ${APP_VERSION}</div>
     </div>`;
     document.body.appendChild(back);
@@ -318,6 +326,7 @@ Pas de texte hors du JSON.`;
       state.keys.gemini = back.querySelector('#k-gemini').value.trim();
       saveSettings(); close(); toast('Réglages enregistrés');
     });
+    back.querySelector('#s-licence').addEventListener('click', ()=>{ close(); Licence.openActivate(); });
     if(window.Vendeur) Vendeur.bindLongPress(back.querySelector('#s-version'));
   }
 
