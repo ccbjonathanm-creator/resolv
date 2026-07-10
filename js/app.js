@@ -239,7 +239,19 @@ Pas de texte hors du JSON.`;
     const p = $('problem').value.trim();
     if(!p){ toast('Décris ton problème en une phrase.'); return; }
     if(!hasKey()){ toast(`Ajoute ta clé ${providerLabel()} (⚙️), c'est gratuit.`); openSettings(); return; }
-    if(!Licence.guard()) return;            // mur payant si 2 diagnostics déjà utilisés
+
+    // Essais gratuits (hors licence) : gérés par e-mail côté serveur, pour que
+    // réinstaller l'app ne redonne pas d'essais.
+    if(!Licence.isLicensed()){
+      if(!Trial.hasEmail()){
+        const ok = await captureEmail();
+        if(!ok) return;                     // e-mail non fourni
+        await Trial.status();
+        refreshQuota();
+      }
+      if(Trial.usesLeft === 0){ Licence.paywall(); return; }  // essais épuisés (connus)
+    }
+
     state.problem = p;
     loader(true, 'Analyse de ton problème…');
     try{
@@ -251,11 +263,14 @@ Pas de texte hors du JSON.`;
 
   async function onDiagnose(){
     collectAnswers();
-    if(!Licence.guard()) return;
     loader(true, 'Diagnostic en cours…');
     try{
+      // Décompte serveur AVANT de produire le diagnostic (source de vérité).
+      if(!Licence.isLicensed()){
+        const c = await Trial.consume();
+        if(!c.allowed && !c.offline){ loader(false); refreshQuota(); Licence.paywall(); return; }
+      }
       const d = await diagnose();
-      Licence.consume();                    // 1 diagnostic livré = 1 usage
       refreshQuota();
       renderResult(d);
     }catch(err){ toast(errMsg(err), 4200); }
@@ -270,15 +285,52 @@ Pas de texte hors du JSON.`;
 
   function refreshQuota(){
     const line = $('quota-line');
-    if(Licence.isLicensed()){ line.innerHTML = '✓ Version complète débloquée à vie'; line.style.cursor='default'; return; }
-    const left = Licence.usesLeft();
-    const base = left>0
-      ? `Version d'essai — <b>${left}</b> diagnostic${left>1?'s':''} gratuit${left>1?'s':''} restant${left>1?'s':''}`
-      : `Essai terminé — débloque l'appli à vie pour 15 €`;
+    if(Licence.isLicensed()){ line.innerHTML = '✓ Version complète débloquée à vie'; return; }
+    const left = Trial.usesLeft;   // null si e-mail pas encore donné / hors-ligne
+    let base;
+    if(!Trial.hasEmail() || left === null){
+      base = `2 diagnostics gratuits, puis 15 € à vie`;
+    } else if(left > 0){
+      base = `Essai — <b>${left}</b> diagnostic${left>1?'s':''} gratuit${left>1?'s':''} restant${left>1?'s':''}`;
+    } else {
+      base = `Essai terminé — débloque l'appli à vie pour 15 €`;
+    }
     line.innerHTML = base + `<br><span class="quota-activate">🔓 J'ai une clé — activer</span>`;
-    line.style.cursor = 'default';
     const link = line.querySelector('.quota-activate');
     if(link) link.addEventListener('click', ()=>Licence.openActivate());
+  }
+
+  /* ---------- Capture de l'e-mail (1re utilisation, hors licence) ---------- */
+  function captureEmail(){
+    return new Promise(resolve => {
+      const back = document.createElement('div'); back.className='sheet-back';
+      back.innerHTML = `<div class="sheet">
+        <h3>👋 Avant de commencer</h3>
+        <p class="hint">Entre ton e-mail pour activer tes <b>2 diagnostics gratuits</b>. Il sert aussi de clé si tu débloques l'appli plus tard.</p>
+        <p class="hint" style="color:var(--dim)">On ne stocke pas ton e-mail en clair : juste un code anonyme pour compter les essais. Aucun message ne te sera envoyé.</p>
+        <label class="field"><span class="lab">Ton e-mail</span>
+          <input type="email" id="ce-email" placeholder="ton@email.com" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
+        <div id="ce-status" class="hint"></div>
+        <div class="btn-row">
+          <button class="btn ghost" id="ce-cancel">Annuler</button>
+          <button class="btn primary" id="ce-ok">Commencer</button>
+        </div>
+        <div style="height:1px;background:var(--line);margin:14px 0"></div>
+        <button class="btn ghost block" id="ce-licence">🔓 J'ai déjà une clé de licence</button>
+      </div>`;
+      document.body.appendChild(back);
+      const close = (val)=>{ back.remove(); resolve(val); };
+      back.addEventListener('click', e=>{ if(e.target===back) close(false); });
+      back.querySelector('#ce-cancel').addEventListener('click', ()=>close(false));
+      back.querySelector('#ce-licence').addEventListener('click', ()=>{ close(false); Licence.openActivate(); });
+      back.querySelector('#ce-ok').addEventListener('click', ()=>{
+        const e = back.querySelector('#ce-email').value.trim();
+        const st = back.querySelector('#ce-status');
+        if(!Trial.valid(e)){ st.textContent = 'Entre un e-mail valide.'; return; }
+        Trial.setEmail(e);
+        close(true);
+      });
+    });
   }
 
   /* ---------- Feuille de réglages ---------- */
@@ -344,10 +396,15 @@ Pas de texte hors du JSON.`;
 
   async function init(){
     loadSettings();
+    Trial.load();
     await Licence.init();
     wire();
     refreshQuota();
     show('home');
+    // rafraîchit le compteur d'essais depuis le serveur (si e-mail connu, hors licence)
+    if(!Licence.isLicensed() && Trial.hasEmail()){
+      Trial.status().then(refreshQuota);
+    }
     if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
   }
   document.addEventListener('DOMContentLoaded', init);

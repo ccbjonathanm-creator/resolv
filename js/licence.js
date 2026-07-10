@@ -115,8 +115,9 @@ const Licence = (() => {
     back.querySelector('#pw-close').addEventListener('click', close);
     // appui long / 5 appuis sur le nom = mode vendeur (génération de clés)
     if (window.Vendeur) Vendeur.bindLongPress(back.querySelector('#pw-version'));
-    // pré-remplit l'e-mail si déjà saisi une fois
-    if (state.email) back.querySelector('#pw-email').value = state.email;
+    // pré-remplit l'e-mail : celui de la licence, sinon celui de l'essai gratuit
+    const preEmail = state.email || (window.Trial && Trial.getEmail && Trial.getEmail()) || '';
+    if (preEmail) back.querySelector('#pw-email').value = preEmail;
     back.querySelector('#pw-activate').addEventListener('click', async ()=>{
       const email = back.querySelector('#pw-email').value.trim();
       const k = back.querySelector('#pw-key').value.trim();
