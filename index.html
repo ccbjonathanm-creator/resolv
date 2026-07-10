@@ -1,0 +1,78 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Resolv — trouve la solution à ton problème</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/styles.css">
+
+<div id="app">
+
+  <!-- Barre du haut -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🔧</span>
+      <span class="brand-name">Resolv</span>
+    </div>
+    <button id="btn-settings" class="icon-btn" aria-label="Réglages">⚙️</button>
+  </header>
+
+  <!-- ÉCRAN 1 : accueil / saisie du problème -->
+  <section id="screen-home" class="screen">
+    <div class="hero">
+      <h1>Un souci ? On le règle.</h1>
+      <p class="sub">Décris ton problème dans n'importe quel domaine. L'IA te pose les bonnes questions, te donne un diagnostic clair, et te sort les meilleures vidéos et discussions.</p>
+    </div>
+
+    <div class="ask-card">
+      <textarea id="problem" rows="3" placeholder="Ex : ma voiture cale au démarrage à froid…"></textarea>
+      <button id="btn-go" class="btn primary big">Trouver la solution</button>
+    </div>
+
+    <div class="chips" id="examples">
+      <span class="chip" data-ex="Ma tondeuse thermique ne démarre plus">🌿 Tondeuse</span>
+      <span class="chip" data-ex="Mon vélo fait un bruit de cliquetis au pédalage">🚲 Vélo</span>
+      <span class="chip" data-ex="Ma voiture cale au démarrage à froid">🚗 Voiture</span>
+      <span class="chip" data-ex="Mon ordinateur portable est très lent et chauffe">💻 Ordinateur</span>
+      <span class="chip" data-ex="Les feuilles de mon rosier jaunissent et tombent">🌱 Jardinage</span>
+      <span class="chip" data-ex="Mon lave-linge n'essore plus et reste plein d'eau">🧺 Électroménager</span>
+      <span class="chip" data-ex="Une prise électrique de la maison ne fonctionne plus">🔌 Maison</span>
+      <span class="chip" data-ex="Mon smartphone ne charge plus quand je branche le câble">📱 Téléphone</span>
+    </div>
+
+    <p class="quota-line" id="quota-line"></p>
+  </section>
+
+  <!-- ÉCRAN 2 : questions de précision -->
+  <section id="screen-questions" class="screen hidden">
+    <button class="back" id="q-back">← Retour</button>
+    <div class="section-head">
+      <span class="pill" id="q-domain">Diagnostic</span>
+      <h2>Quelques précisions</h2>
+      <p class="sub">Réponds au mieux, même approximativement. Ça affine le diagnostic.</p>
+    </div>
+    <div id="questions-list"></div>
+    <button id="btn-diagnose" class="btn primary big">Lancer le diagnostic</button>
+  </section>
+
+  <!-- ÉCRAN 3 : résultat -->
+  <section id="screen-result" class="screen hidden">
+    <button class="back" id="r-back">← Nouveau problème</button>
+    <div id="result-body"></div>
+  </section>
+
+  <!-- Chargement -->
+  <div id="loader" class="loader hidden">
+    <div class="spinner"></div>
+    <p id="loader-text">L'IA réfléchit…</p>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+</div>
+
+<script src="js/licence.js"></script>
+<script src="js/vendeur.js"></script>
+<script src="js/app.js"></script>
