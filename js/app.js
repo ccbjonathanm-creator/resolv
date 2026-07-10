@@ -7,7 +7,7 @@
    =========================================================== */
 
 const App = (() => {
-  const APP_VERSION = 'v1';
+  const APP_VERSION = 'v5';   // suit désormais la version du service worker (resolv-v5)
   const LS = 'depanne_settings_v1';
 
   const state = {
