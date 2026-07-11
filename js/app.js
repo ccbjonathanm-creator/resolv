@@ -7,7 +7,7 @@
    =========================================================== */
 
 const App = (() => {
-  const APP_VERSION = 'v6';   // suit la version du service worker (resolv-v6)
+  const APP_VERSION = 'v8';   // suit la version du service worker (resolv-v8)
   const LS = 'depanne_settings_v1';
 
   const state = {
@@ -300,6 +300,38 @@ Pas de texte hors du JSON.`;
     if(link) link.addEventListener('click', ()=>Licence.openActivate());
   }
 
+  /* ---------- Gate e-mail bloquant au 1er lancement (hors licence) ----------
+     Demande l'e-mail dès l'ouverture (façon Off-Grid) : réinstaller ne redonne
+     pas d'essais gratuits. Non annulable : l'e-mail est requis pour entrer. */
+  function showStartGate(){
+    if(document.getElementById('resolv-gate')) return;
+    const back = document.createElement('div'); back.className='sheet-back'; back.id='resolv-gate';
+    back.innerHTML = `<div class="sheet">
+      <h3>👋 Bienvenue sur Resolv</h3>
+      <p class="hint">Entre ton e-mail pour démarrer tes <b>2 diagnostics gratuits</b>. Il sert aussi de clé si tu débloques l'appli plus tard, et garde ton essai même si tu réinstalles l'application.</p>
+      <p class="hint" style="color:var(--dim)">On ne stocke pas ton e-mail en clair : juste un code anonyme pour compter les essais. Aucun message ne te sera envoyé.</p>
+      <label class="field"><span class="lab">Ton e-mail</span>
+        <input type="email" id="rg-email" placeholder="ton@email.com" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
+      <div id="rg-status" class="hint"></div>
+      <div class="btn-row"><button class="btn primary block" id="rg-ok">Commencer</button></div>
+      <div style="height:1px;background:var(--line);margin:14px 0"></div>
+      <button class="btn ghost block" id="rg-licence">🔓 J'ai déjà une clé de licence</button>
+    </div>`;
+    document.body.appendChild(back);
+    // volontairement NON fermable au clic extérieur : l'e-mail est requis.
+    back.querySelector('#rg-licence').addEventListener('click', ()=>{ back.remove(); Licence.openActivate(); });
+    back.querySelector('#rg-ok').addEventListener('click', async ()=>{
+      const e = back.querySelector('#rg-email').value.trim();
+      const st = back.querySelector('#rg-status');
+      if(!Trial.valid(e)){ st.textContent = 'Entre un e-mail valide.'; return; }
+      st.textContent = 'Un instant…';
+      Trial.setEmail(e);
+      await Trial.status();
+      back.remove();
+      refreshQuota();
+    });
+  }
+
   /* ---------- Capture de l'e-mail (1re utilisation, hors licence) ---------- */
   function captureEmail(){
     return new Promise(resolve => {
@@ -404,6 +436,10 @@ Pas de texte hors du JSON.`;
     // rafraîchit le compteur d'essais depuis le serveur (si e-mail connu, hors licence)
     if(!Licence.isLicensed() && Trial.hasEmail()){
       Trial.status().then(refreshQuota);
+    }
+    // 1er lancement sans licence ni e-mail : on demande l'e-mail avant tout (anti-reset d'essai).
+    if(!Licence.isLicensed() && !Trial.hasEmail()){
+      showStartGate();
     }
     if('serviceWorker' in navigator){
       // MAJ auto : dès qu'un nouveau service worker prend la main, on recharge une fois.

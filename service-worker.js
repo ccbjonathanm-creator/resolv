@@ -1,5 +1,5 @@
 /* Service worker — réseau d'abord AVEC revalidation forcée (MAJ fiable), cache en repli hors-ligne. */
-const CACHE = 'resolv-v7';
+const CACHE = 'resolv-v8';
 const ASSETS = [
   './',
   './index.html',
