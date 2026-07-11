@@ -18,6 +18,18 @@ const Vendeur = (() => {
 
   function hasKey(){ try{ return !!localStorage.getItem(VKEY); }catch(e){ return false; } }
 
+  // --- Registre des ventes (e-mail -> clé + date), gardé sur l'appareil du vendeur ---
+  const LKEY = VKEY.replace('.vendeur', '.ledger');
+  const esc  = s => (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function ledgerGet(){ try{ return JSON.parse(localStorage.getItem(LKEY)) || []; }catch(e){ return []; } }
+  function ledgerSave(l){ localStorage.setItem(LKEY, JSON.stringify(l)); }
+  function ledgerAdd(email, key){
+    email = (email||'').trim().toLowerCase();
+    const l = ledgerGet(); const i = l.findIndex(x=> x.email===email);
+    const e = { email, key, date:new Date().toISOString().slice(0,10) };
+    if(i>=0) l[i]=e; else l.push(e); ledgerSave(l);
+  }
+
   async function deriveKey(pass, salt){
     const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey(
@@ -109,24 +121,56 @@ const Vendeur = (() => {
       <p class="hint">Entre l'e-mail que le client t'a communiqué à l'achat. La clé sera liée à cet e-mail (valable sur tous ses appareils).</p>
       <label class="field"><span class="lab">E-mail du client</span>
         <input type="email" id="v-email" placeholder="ex. client@mail.com" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-      <div class="btn-row"><button class="btn primary" id="v-gen">Générer la clé</button></div>
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn ghost" id="v-ledger">📋 Registre (${ledgerGet().length})</button>
+        <button class="btn primary" id="v-gen">Générer la clé</button></div>
       <div id="v-out" class="result" style="display:none;margin-top:14px"></div>
       <div class="spacer"></div>
       <button class="btn ghost block" id="v-done">Fermer</button>`;
     body.querySelector('#v-done').addEventListener('click', close);
+    body.querySelector('#v-ledger').addEventListener('click', ()=> viewLedger(body, close));
     body.querySelector('#v-gen').addEventListener('click', async ()=>{
       const email = body.querySelector('#v-email').value.trim();
       const out = body.querySelector('#v-out');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ out.style.display='block'; out.textContent='Entre un e-mail valide.'; return; }
       try{
         const licence = await signEmail(privInMemory, email);
+        ledgerAdd(email, licence);
         out.style.display='block';
-        out.innerHTML = `<div class="hint" style="margin-bottom:6px">Clé pour <b>${email.toLowerCase()}</b> (copiée) — envoie e-mail + clé au client :</div>
+        out.innerHTML = `<div class="hint" style="margin-bottom:6px">Clé pour <b>${email.toLowerCase()}</b> (copiée, enregistrée) — envoie e-mail + clé au client :</div>
           <div style="word-break:break-all;font-family:ui-monospace,monospace;font-size:13px;color:var(--accent2)">${licence}</div>`;
         if (navigator.clipboard) navigator.clipboard.writeText(licence);
         toast('Clé générée et copiée');
       }catch(e){ out.style.display='block'; out.textContent='Erreur : '+e.message; }
     });
+  }
+
+  function viewLedger(body, close){
+    body.innerHTML = `
+      <h3>📋 Registre des ventes</h3>
+      <p class="hint">Tes acheteurs, gardés sur cet appareil. Cherche un e-mail pour vérifier un achat et recopier sa clé.</p>
+      <label class="field"><input type="search" id="ld-q" placeholder="Chercher un e-mail…" autocomplete="off"></label>
+      <div id="ld-list" style="max-height:44vh;overflow:auto"></div>
+      <div class="btn-row" style="justify-content:space-between;margin-top:10px">
+        <span><button class="btn ghost" id="ld-exp">⬇ Sauvegarder</button> <button class="btn ghost" id="ld-imp">⬆ Restaurer</button></span>
+        <button class="btn ghost" id="ld-back">Retour</button></div>
+      <input id="ld-file" type="file" accept=".json,application/json" style="display:none">`;
+    const render=()=>{
+      const q=(body.querySelector('#ld-q').value||'').trim().toLowerCase();
+      const list=ledgerGet().filter(x=>!q||x.email.includes(q)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      const box=body.querySelector('#ld-list');
+      if(!list.length){ box.innerHTML='<p class="hint">'+(q?'Aucun e-mail ne correspond.':'Aucune vente enregistrée pour l\'instant.')+'</p>'; return; }
+      box.innerHTML=list.map((x,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.1)">
+        <div style="flex:1;min-width:0"><div style="font-weight:700;word-break:break-all">${esc(x.email)}</div><div class="hint" style="font-size:11px">acheté le ${x.date||'?'}</div></div>
+        <button class="btn ghost" data-i="${i}" style="flex:none">Copier la clé</button></div>`).join('');
+      box.querySelectorAll('button[data-i]').forEach(b=> b.addEventListener('click',()=>{ const x=list[+b.dataset.i]; if(navigator.clipboard) navigator.clipboard.writeText(x.key); toast('Clé de '+x.email+' copiée'); }));
+    };
+    render();
+    body.querySelector('#ld-q').addEventListener('input', render);
+    body.querySelector('#ld-back').addEventListener('click', ()=> viewGenerate(body, close));
+    body.querySelector('#ld-exp').addEventListener('click', ()=>{ const url=URL.createObjectURL(new Blob([JSON.stringify(ledgerGet(),null,1)],{type:'application/json'})); const a=document.createElement('a'); a.href=url; a.download='licences-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(url); toast('Registre sauvegardé'); });
+    body.querySelector('#ld-imp').addEventListener('click', ()=> body.querySelector('#ld-file').click());
+    body.querySelector('#ld-file').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f)return; try{ const arr=JSON.parse(await f.text()); if(!Array.isArray(arr))throw 0; const m=new Map(ledgerGet().map(x=>[x.email,x])); for(const x of arr){ if(x&&x.email&&x.key){ const em=x.email.trim().toLowerCase(); m.set(em,{email:em,key:x.key,date:x.date||''}); } } ledgerSave([...m.values()]); toast('Registre restauré'); render(); }catch(_){ toast('Fichier invalide'); } e.target.value=''; });
   }
 
   // Ouvre le mode vendeur : appui long OU 5 appuis rapides (fiable sur mobile,
