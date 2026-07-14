@@ -10,7 +10,7 @@ const Trial = (() => {
   const EKEY   = 'resolv.trial_email';
   let email = null;
   let usesLeft = null;   // null = inconnu (pas encore interrogé / hors-ligne)
-  let limit = 2;
+  let limit = 10;
 
   const norm  = e => (e || '').trim().toLowerCase();
   const valid = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(norm(e));
