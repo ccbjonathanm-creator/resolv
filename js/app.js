@@ -7,7 +7,7 @@
    =========================================================== */
 
 const App = (() => {
-  const APP_VERSION = 'v8';   // suit la version du service worker (resolv-v8)
+  const APP_VERSION = 'v10';  // suit la version du service worker (resolv-v10)
   const LS = 'depanne_settings_v1';
 
   const state = {
@@ -289,7 +289,7 @@ Pas de texte hors du JSON.`;
     const left = Trial.usesLeft;   // null si e-mail pas encore donné / hors-ligne
     let base;
     if(!Trial.hasEmail() || left === null){
-      base = `2 diagnostics gratuits, puis 15 € à vie`;
+      base = `10 diagnostics gratuits, puis 15 € à vie`;
     } else if(left > 0){
       base = `Essai — <b>${left}</b> diagnostic${left>1?'s':''} gratuit${left>1?'s':''} restant${left>1?'s':''}`;
     } else {
@@ -308,7 +308,7 @@ Pas de texte hors du JSON.`;
     const back = document.createElement('div'); back.className='sheet-back'; back.id='resolv-gate';
     back.innerHTML = `<div class="sheet">
       <h3>👋 Bienvenue sur Resolv</h3>
-      <p class="hint">Entre ton e-mail pour démarrer tes <b>2 diagnostics gratuits</b>. Il sert aussi de clé si tu débloques l'appli plus tard, et garde ton essai même si tu réinstalles l'application.</p>
+      <p class="hint">Entre ton e-mail pour démarrer tes <b>10 diagnostics gratuits</b>. Il sert aussi de clé si tu débloques l'appli plus tard, et garde ton essai même si tu réinstalles l'application.</p>
       <p class="hint" style="color:var(--dim)">On ne stocke pas ton e-mail en clair : juste un code anonyme pour compter les essais. Aucun message ne te sera envoyé.</p>
       <label class="field"><span class="lab">Ton e-mail</span>
         <input type="email" id="rg-email" placeholder="ton@email.com" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
@@ -338,7 +338,7 @@ Pas de texte hors du JSON.`;
       const back = document.createElement('div'); back.className='sheet-back';
       back.innerHTML = `<div class="sheet">
         <h3>👋 Avant de commencer</h3>
-        <p class="hint">Entre ton e-mail pour activer tes <b>2 diagnostics gratuits</b>. Il sert aussi de clé si tu débloques l'appli plus tard.</p>
+        <p class="hint">Entre ton e-mail pour activer tes <b>10 diagnostics gratuits</b>. Il sert aussi de clé si tu débloques l'appli plus tard.</p>
         <p class="hint" style="color:var(--dim)">On ne stocke pas ton e-mail en clair : juste un code anonyme pour compter les essais. Aucun message ne te sera envoyé.</p>
         <label class="field"><span class="lab">Ton e-mail</span>
           <input type="email" id="ce-email" placeholder="ton@email.com" autocomplete="email" autocapitalize="off" spellcheck="false"></label>

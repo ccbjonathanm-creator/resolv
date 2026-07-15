@@ -1,5 +1,5 @@
 /* ============================================================
-   licence.js — 2 diagnostics gratuits puis clé de licence à vie.
+   licence.js — 10 diagnostics gratuits puis clé de licence à vie.
    Sécurité : la clé de licence est une SIGNATURE ECDSA P-256 de
    l'E-MAIL de l'acheteur (normalisé). Elle marche sur n'importe
    quel appareil et survit à une réinstallation (le client ressaisit
@@ -90,7 +90,7 @@ const Licence = (() => {
     const back = document.createElement('div'); back.className = 'sheet-back';
     const banner = isPaywall
       ? `<div class="result" style="background:rgba(61,139,255,.1);border-color:rgba(61,139,255,.4);margin:10px 0">
-           Tu as utilisé tes <b>2 diagnostics gratuits</b>. Pour continuer sans limite, débloque l'appli
+           Tu as utilisé tes <b>10 diagnostics gratuits</b>. Pour continuer sans limite, débloque l'appli
            <b>à vie pour 15 €</b> (paiement unique, aucun abonnement).
          </div>`
       : `<p class="hint">Tu as acheté Resolv ? Saisis ton e-mail d'achat et la clé qu'on t'a envoyée pour débloquer l'appli à vie.</p>`;
