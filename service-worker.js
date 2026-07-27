@@ -1,9 +1,10 @@
 /* Service worker — réseau d'abord AVEC revalidation forcée (MAJ fiable), cache en repli hors-ligne. */
-const CACHE = 'resolv-v14';
+const CACHE = 'resolv-v15';
 const ASSETS = [
   './mesure.js',
   './',
   './index.html',
+  './garde-style.js',
   './css/styles.css',
   './js/app.js',
   './js/licence.js',
@@ -40,9 +41,13 @@ self.addEventListener('fetch', e => {
   // sinon un app.js encore "frais" au sens HTTP pouvait être resservi malgré une MAJ.
   e.respondWith(
     fetch(new Request(req, { cache: 'reload' })).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+      // Ne jamais mettre en cache une réponse en erreur : elle serait resservie
+      // ensuite, et la panne deviendrait permanente au lieu d'être passagère.
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(()=>{});
+      }
       return res;
-    }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    }).catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
 });
